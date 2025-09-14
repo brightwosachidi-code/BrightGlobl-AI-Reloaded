@@ -1,191 +1,283 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>B.G Image Generator</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Bright AI (Bright GPT)</title>
 <style>
-body {
+  :root{
+    --bg1: #1a1a2e;
+    --bg2: #16213e;
+    --accent: #0f3460;
+    --muted: #b3b3b3;
+    --text: #e0e0e0;
+    --success: #7bed9f;
+    --error: #ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{
     margin:0;
     font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
-    color: #e0e0e0;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-top: 40px;
-}
-.logo-container {
-    text-align: center;
-    margin-bottom: 20px;
-}
-.logo-container img {
-    max-width: 150px;
-    border-radius: 12px;
-}
-.logo-container h1 {
-    margin-top: 10px;
-    font-size: 1.8rem;
-}
-textarea {
-    width: 90%;
-    max-width: 600px;
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid #0f3460;
-    background: #16213e;
-    color: #e0e0e0;
-    font-size: 1rem;
-    min-height: 100px;
-    margin-bottom: 10px;
-}
-.buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    margin-bottom: 15px;
-}
-button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
-}
-button.generate {
-    background: #0f3460;
-    color: #e0e0e0;
-}
-button.generate:hover { background: #1a1a2e; }
-button.clear {
-    background: #3e213e;
-    color: #e0e0e0;
-}
-button.clear:hover { background: #5e315e; }
-.status { min-height: 20px; font-style: italic; margin-bottom: 15px; }
-.image-display {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 15px;
-    width: 90%;
-    max-width: 800px;
-    margin-bottom: 30px;
-}
-.image-card {
-    background: #16213e;
-    border-radius: 12px;
-    padding: 10px;
-    text-align: center;
-}
-.image-card img {
-    max-width: 100%;
-    border-radius: 8px;
-}
-.image-card button {
-    margin-top: 5px;
-    background: #0f3460;
-    color: #e0e0e0;
-    padding: 6px 12px;
-    border-radius: 6px;
-}
+    background: linear-gradient(135deg,var(--bg1),var(--bg2),#0f3460);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:24px;
+  }
+
+  .container{
+    width:100%;
+    max-width:900px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .logo-container{
+    display:flex;
+    gap:12px;
+    align-items:center;
+  }
+  .logo-container img{ width:64px; height:64px; border-radius:12px; object-fit:cover; }
+  .logo-container h1{ margin:0; font-size:1.4rem; }
+
+  .chat-window{
+    background: rgba(10,10,20,0.35);
+    border-radius:12px;
+    padding:12px;
+    min-height:420px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    overflow:hidden;
+  }
+
+  .messages{
+    overflow:auto;
+    padding:8px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .msg{
+    max-width:80%;
+    padding:10px 12px;
+    border-radius:10px;
+    line-height:1.35;
+    word-wrap:break-word;
+  }
+
+  .msg.user{
+    align-self:flex-end;
+    background: linear-gradient(90deg,var(--accent),#1a1a2e);
+    color:var(--text);
+    border-bottom-right-radius:2px;
+  }
+  .msg.bot{
+    align-self:flex-start;
+    background:#0f1724;
+    color:var(--text);
+    border-bottom-left-radius:2px;
+  }
+
+  .meta{
+    font-size:0.8rem;
+    color:var(--muted);
+    margin-top:4px;
+  }
+
+  .controls{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+
+  input[type="text"]{
+    flex:1;
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,0.04);
+    background: #0f1626;
+    color:var(--text);
+    font-size:1rem;
+  }
+
+  button{
+    background:var(--accent);
+    color:var(--text);
+    border:none;
+    padding:10px 14px;
+    border-radius:8px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  button.secondary{
+    background:#3e213e;
+  }
+
+  .status{
+    min-height:20px;
+    font-style:italic;
+    color:var(--muted);
+  }
+
+  @media(max-width:520px){
+    .logo-container img{ width:52px; height:52px; }
+    .chat-window{ min-height:360px; }
+  }
 </style>
 </head>
 <body>
 
-<div class="logo-container">
-    <img src="https://i.imgur.com/V4rHOGP.png" alt="B.G Logo">
-    <h1>B.G Image Generator</h1>
+<div class="container">
+  <div class="logo-container">
+    <img src="https://i.imgur.com/V4rHOGP.png" alt="B.G Logo" />
+    <div>
+      <h1>Bright AI (Bright GPT)</h1>
+      <div style="font-size:0.85rem;color:var(--muted)">Powered by Bright Globl's Media</div>
+    </div>
+  </div>
+
+  <div class="chat-window">
+    <div class="messages" id="messages" role="log" aria-live="polite"></div>
+
+    <div class="status" id="status"></div>
+
+    <form id="chatForm" class="controls" onsubmit="return false;">
+      <input id="userInput" type="text" placeholder="Type your message here..." autocomplete="off" />
+      <button id="sendBtn" type="button">Send</button>
+      <button id="clearBtn" type="button" class="secondary">Clear</button>
+    </form>
+  </div>
 </div>
-
-<textarea id="promptInput" placeholder="Enter your prompt here..."></textarea>
-
-<div class="buttons">
-    <button class="generate" id="generateBtn">Generate Image</button>
-    <button class="clear" id="clearBtn">Clear</button>
-</div>
-
-<div class="status" id="status"></div>
-
-<div class="image-display" id="imageDisplay"></div>
 
 <script>
-const promptInput = document.getElementById("promptInput");
-const generateBtn = document.getElementById("generateBtn");
-const clearBtn = document.getElementById("clearBtn");
-const status = document.getElementById("status");
-const imageDisplay = document.getElementById("imageDisplay");
+  const messagesEl = document.getElementById('messages');
+  const statusEl = document.getElementById('status');
+  const userInput = document.getElementById('userInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const clearBtn = document.getElementById('clearBtn');
 
-generateBtn.addEventListener("click", async () => {
-    const prompt = promptInput.value.trim();
-    if(!prompt) {
-        status.textContent = "Please enter a prompt!";
-        status.style.color = "#ff6b6b";
-        return;
-    }
-    status.textContent = "Generating... ⏳";
-    status.style.color = "#b3b3b3";
-    generateBtn.disabled = true;
+  function appendMessage(text, who='bot', meta=''){
+    const div = document.createElement('div');
+    div.className = 'msg ' + (who === 'user' ? 'user' : 'bot');
+    div.innerHTML = `<div>${escapeHtml(text)}</div>`;
+    if(meta) div.innerHTML += `<div class="meta">${escapeHtml(meta)}</div>`;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function escapeHtml(unsafe) {
+    if (unsafe === undefined || unsafe === null) return '';
+    return unsafe.toString()
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  async function sendMessage(){
+    const prompt = userInput.value.trim();
+    if(!prompt) return;
+    appendMessage(prompt, 'user');
+    userInput.value = '';
+    statusEl.textContent = 'Thinking... ⏳';
+
+    sendBtn.disabled = true;
     clearBtn.disabled = true;
 
     try {
-        const response = await fetch('/generate', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt })
-        });
+      const response = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
 
-        if(!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error || "Unknown error");
+      if(!response.ok){
+        let errText;
+        try { errText = await response.json(); errText = errText.error || JSON.stringify(errText); }
+        catch { errText = await response.text(); }
+        appendMessage('Error: ' + errText, 'bot');
+        statusEl.textContent = 'Error';
+        return;
+      }
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (err) {
+        const raw = await response.text();
+        appendMessage('Raw response: ' + raw, 'bot');
+        statusEl.textContent = 'Done';
+        return;
+      }
+
+      const possibleText =
+        (data.output_text && String(data.output_text)) ||
+        (data.output && Array.isArray(data.output) && data.output.map(o => (o.content || o)).join('\n')) ||
+        (data.candidates && data.candidates[0] && (data.candidates[0].content || data.candidates[0].message || data.candidates[0].output)) ||
+        (data.data && data.data[0] && (data.data[0].generated_text || data.data[0].text)) ||
+        null;
+
+      let botText = null;
+
+      if (possibleText) {
+        if (typeof possibleText === 'string') {
+          botText = possibleText;
+        } else if (Array.isArray(possibleText)) {
+          botText = possibleText.map(p => {
+            if (typeof p === 'string') return p;
+            if (p.text) return p.text;
+            if (p.parts) return (Array.isArray(p.parts) ? p.parts.map(pp => pp.text || pp).join('') : '');
+            return JSON.stringify(p);
+          }).join('\n');
+        } else if (typeof possibleText === 'object') {
+          botText = possibleText.text || possibleText.content || JSON.stringify(possibleText);
+        } else {
+          botText = String(possibleText);
         }
+      }
 
-        const blob = await response.blob();
-        const imageUrl = URL.createObjectURL(blob);
-        displayImage(imageUrl, prompt);
-        status.textContent = "Done ✅";
-        status.style.color = "#7bed9f";
+      if(!botText) botText = data.message || data.text || (data?.candidates?.[0]?.message?.content?.map(c=>c.text).join('') || null);
 
-    } catch(err) {
-        console.error(err);
-        status.textContent = `Error: ${err.message}`;
-        status.style.color = "#ff6b6b";
+      if(!botText) {
+        appendMessage('Response (raw JSON):\n' + JSON.stringify(data, null, 2), 'bot');
+      } else {
+        appendMessage(botText, 'bot');
+      }
+
+      statusEl.textContent = 'Done ✅';
+
+    } catch(err){
+      console.error(err);
+      appendMessage('Error: ' + (err.message || String(err)), 'bot');
+      statusEl.textContent = 'Error';
     } finally {
-        generateBtn.disabled = false;
-        clearBtn.disabled = false;
+      sendBtn.disabled = false;
+      clearBtn.disabled = false;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
     }
-});
+  }
 
-clearBtn.addEventListener("click", () => {
-    promptInput.value = "";
-    imageDisplay.innerHTML = "";
-    status.textContent = "";
-});
+  sendBtn.addEventListener('click', sendMessage);
+  userInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
 
-function displayImage(url, prompt) {
-    const card = document.createElement("div");
-    card.className = "image-card";
+  clearBtn.addEventListener('click', () => {
+    messagesEl.innerHTML = '';
+    statusEl.textContent = '';
+    userInput.focus();
+  });
 
-    const img = document.createElement("img");
-    img.src = url;
-    img.alt = prompt;
+  appendMessage("Hello! I'm Bright AI (Bright GPT) — ask me anything. (Press Enter to send)", 'bot');
 
-    const downloadBtn = document.createElement("button");
-    downloadBtn.textContent = "Download";
-    downloadBtn.addEventListener("click", () => {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `bg_image_${Date.now()}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    });
-
-    card.appendChild(img);
-    card.appendChild(downloadBtn);
-    imageDisplay.prepend(card);
-}
 </script>
-
 </body>
 </html>

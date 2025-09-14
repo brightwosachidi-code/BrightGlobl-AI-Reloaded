@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B.G Image Generator</title>
+<style>
+body {
+    margin:0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 40px;
+}
+.logo-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.logo-container img {
+    max-width: 150px;
+    border-radius: 12px;
+}
+.logo-container h1 {
+    margin-top: 10px;
+    font-size: 1.8rem;
+}
+textarea {
+    width: 90%;
+    max-width: 600px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #0f3460;
+    background: #16213e;
+    color: #e0e0e0;
+    font-size: 1rem;
+    min-height: 100px;
+    margin-bottom: 10px;
+}
+.buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+button.generate {
+    background: #0f3460;
+    color: #e0e0e0;
+}
+button.generate:hover { background: #1a1a2e; }
+button.clear {
+    background: #3e213e;
+    color: #e0e0e0;
+}
+button.clear:hover { background: #5e315e; }
+.status { min-height: 20px; font-style: italic; margin-bottom: 15px; }
+.image-display {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    width: 90%;
+    max-width: 800px;
+    margin-bottom: 30px;
+}
+.image-card {
+    background: #16213e;
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+}
+.image-card img {
+    max-width: 100%;
+    border-radius: 8px;
+}
+.image-card button {
+    margin-top: 5px;
+    background: #0f3460;
+    color: #e0e0e0;
+    padding: 6px 12px;
+    border-radius: 6px;
+}
+</style>
+</head>
+<body>
+
+<div class="logo-container">
+    <img src="https://i.imgur.com/V4rHOGP.png" alt="B.G Logo">
+    <h1>B.G Image Generator</h1>
+</div>
+
+<textarea id="promptInput" placeholder="Enter your prompt here..."></textarea>
+
+<div class="buttons">
+    <button class="generate" id="generateBtn">Generate Image</button>
+    <button class="clear" id="clearBtn">Clear</button>
+</div>
+
+<div class="status" id="status"></div>
+
+<div class="image-display" id="imageDisplay"></div>
+
+<script>
+const promptInput = document.getElementById("promptInput");
+const generateBtn = document.getElementById("generateBtn");
+const clearBtn = document.getElementById("clearBtn");
+const status = document.getElementById("status");
+const imageDisplay = document.getElementById("imageDisplay");
+
+generateBtn.addEventListener("click", async () => {
+    const prompt = promptInput.value.trim();
+    if(!prompt) {
+        status.textContent = "Please enter a prompt!";
+        status.style.color = "#ff6b6b";
+        return;
+    }
+    status.textContent = "Generating... ⏳";
+    status.style.color = "#b3b3b3";
+    generateBtn.disabled = true;
+    clearBtn.disabled = true;
+
+    try {
+        const response = await fetch('/generate', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt })
+        });
+
+        if(!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || "Unknown error");
+        }
+
+        const blob = await response.blob();
+        const imageUrl = URL.createObjectURL(blob);
+        displayImage(imageUrl, prompt);
+        status.textContent = "Done ✅";
+        status.style.color = "#7bed9f";
+
+    } catch(err) {
+        console.error(err);
+        status.textContent = `Error: ${err.message}`;
+        status.style.color = "#ff6b6b";
+    } finally {
+        generateBtn.disabled = false;
+        clearBtn.disabled = false;
+    }
+});
+
+clearBtn.addEventListener("click", () => {
+    promptInput.value = "";
+    imageDisplay.innerHTML = "";
+    status.textContent = "";
+});
+
+function displayImage(url, prompt) {
+    const card = document.createElement("div");
+    card.className = "image-card";
+
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = prompt;
+
+    const downloadBtn = document.createElement("button");
+    downloadBtn.textContent = "Download";
+    downloadBtn.addEventListener("click", () => {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `bg_image_${Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
+
+    card.appendChild(img);
+    card.appendChild(downloadBtn);
+    imageDisplay.prepend(card);
+}
+</script>
+
+</body>
+</html>

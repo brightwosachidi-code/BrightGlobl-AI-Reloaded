@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -206,7 +206,20 @@
         return;
       }
 
-      const botText = (data.reply || 'Bright AI could not generate a response.').trim();
+      // --- Clean markdown-like formatting ---
+      let botText = (data.reply || 'Bright AI could not generate a response.').trim();
+
+      // Bold to plain text
+      botText = botText.replace(/\*\*(.*?)\*\*/g, '$1');
+
+      // List items: "* " → "• "
+      botText = botText.replace(/^\s*\*\s?/gm, '• ');
+
+      // Remove any stray asterisks
+      botText = botText.replace(/\*+/g, '');
+
+      // Normalize multiple line breaks
+      botText = botText.replace(/\n{2,}/g, '\n');
 
       appendMessage(botText, 'bot');
       statusEl.textContent = 'Done ✅';

@@ -179,16 +179,6 @@
       .replace(/>/g, "&gt;");
   }
 
-  function extractBotText(data){
-    // Try multiple likely places Gemini might return text
-    if(data.candidates?.[0]?.content?.parts?.[0]?.text) return data.candidates[0].content.parts[0].text;
-    if(data.output_text) return data.output_text;
-    if(Array.isArray(data.output)) return data.output.map(o => o.content || o.text || '').join('\n');
-    if(data.data?.[0]?.generated_text) return data.data[0].generated_text;
-    if(data.candidates?.[0]?.message?.content?.map(c => c.text).join('')) return data.candidates[0].message.content.map(c=>c.text).join('');
-    return null;
-  }
-
   async function sendMessage(){
     const prompt = userInput.value.trim();
     if(!prompt) return;
@@ -206,12 +196,17 @@
         body: JSON.stringify({ prompt })
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (err) {
+        const text = await response.text();
+        appendMessage("Unexpected server response:\n" + text, 'bot');
+        statusEl.textContent = 'Error';
+        return;
+      }
 
-      let botText = extractBotText(data) || '';
-      botText = botText.replace(/^response\s*\(raw JSON\)\s*/i, '').replace(/\*/g, '').trim();
-
-      if(!botText) botText = 'Bright AI could not generate a response.';
+      const botText = (data.reply || 'Bright AI could not generate a response.').trim();
 
       appendMessage(botText, 'bot');
       statusEl.textContent = 'Done ✅';

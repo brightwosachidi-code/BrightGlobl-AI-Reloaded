@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -171,6 +171,16 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
+  // --- SPLIT LONG MESSAGES INTO MULTIPLE BUBBLES ---
+  function appendSplitMessage(text, who='bot', meta=''){
+    const chunkSize = 250; // characters per bubble
+    for(let i=0; i<text.length; i+=chunkSize){
+      const chunk = text.slice(i, i+chunkSize);
+      const displayMeta = (i === 0) ? meta : '';
+      appendMessage(chunk, who, displayMeta);
+    }
+  }
+
   function escapeHtml(unsafe) {
     if (unsafe === undefined || unsafe === null) return '';
     return unsafe.toString()
@@ -205,49 +215,18 @@
         return;
       }
 
-      let data;
-      try {
-        data = await response.json();
-      } catch (err) {
-        const raw = await response.text();
-        appendMessage('Raw response: ' + raw, 'bot');
-        statusEl.textContent = 'Done';
-        return;
-      }
+      const data = await response.json();
 
-      const possibleText =
-        (data.output_text && String(data.output_text)) ||
-        (data.output && Array.isArray(data.output) && data.output.map(o => (o.content || o)).join('\n')) ||
-        (data.candidates && data.candidates[0] && (data.candidates[0].content || data.candidates[0].message || data.candidates[0].output)) ||
-        (data.data && data.data[0] && (data.data[0].generated_text || data.data[0].text)) ||
-        null;
+      // --- CLEAN AND EXTRACT THE MAIN BOT TEXT ---
+      let botText = data.candidates?.[0]?.content?.parts?.[0]?.text || data.output_text || '';
+      botText = botText.replace(/^response\s*\(raw JSON\)\s*/i, '');
+      botText = botText.replace(/\*/g, '');
+      botText = botText.trim();
 
-      let botText = null;
+      if(!botText) botText = 'No reply from Bright AI.';
 
-      if (possibleText) {
-        if (typeof possibleText === 'string') {
-          botText = possibleText;
-        } else if (Array.isArray(possibleText)) {
-          botText = possibleText.map(p => {
-            if (typeof p === 'string') return p;
-            if (p.text) return p.text;
-            if (p.parts) return (Array.isArray(p.parts) ? p.parts.map(pp => pp.text || pp).join('') : '');
-            return JSON.stringify(p);
-          }).join('\n');
-        } else if (typeof possibleText === 'object') {
-          botText = possibleText.text || possibleText.content || JSON.stringify(possibleText);
-        } else {
-          botText = String(possibleText);
-        }
-      }
-
-      if(!botText) botText = data.message || data.text || (data?.candidates?.[0]?.message?.content?.map(c=>c.text).join('') || null);
-
-      if(!botText) {
-        appendMessage('Response (raw JSON):\n' + JSON.stringify(data, null, 2), 'bot');
-      } else {
-        appendMessage(botText, 'bot');
-      }
+      // --- APPEND SPLIT MESSAGES ---
+      appendSplitMessage(botText, 'bot');
 
       statusEl.textContent = 'Done ✅';
 
@@ -276,6 +255,7 @@
     userInput.focus();
   });
 
+  // Initial welcome message
   appendMessage("Hello! I'm Bright AI (Bright GPT) — ask me anything. (Press Enter to send)", 'bot');
 
 </script>

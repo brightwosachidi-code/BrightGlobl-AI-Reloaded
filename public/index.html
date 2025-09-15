@@ -171,22 +171,22 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  // --- SPLIT LONG MESSAGES INTO MULTIPLE BUBBLES ---
-  function appendSplitMessage(text, who='bot', meta=''){
-    const chunkSize = 250; // characters per bubble
-    for(let i=0; i<text.length; i+=chunkSize){
-      const chunk = text.slice(i, i+chunkSize);
-      const displayMeta = (i === 0) ? meta : '';
-      appendMessage(chunk, who, displayMeta);
-    }
-  }
-
   function escapeHtml(unsafe) {
-    if (unsafe === undefined || unsafe === null) return '';
+    if (!unsafe) return '';
     return unsafe.toString()
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
+  }
+
+  function extractBotText(data){
+    // Try multiple likely places Gemini might return text
+    if(data.candidates?.[0]?.content?.parts?.[0]?.text) return data.candidates[0].content.parts[0].text;
+    if(data.output_text) return data.output_text;
+    if(Array.isArray(data.output)) return data.output.map(o => o.content || o.text || '').join('\n');
+    if(data.data?.[0]?.generated_text) return data.data[0].generated_text;
+    if(data.candidates?.[0]?.message?.content?.map(c => c.text).join('')) return data.candidates[0].message.content.map(c=>c.text).join('');
+    return null;
   }
 
   async function sendMessage(){
@@ -206,28 +206,14 @@
         body: JSON.stringify({ prompt })
       });
 
-      if(!response.ok){
-        let errText;
-        try { errText = await response.json(); errText = errText.error || JSON.stringify(errText); }
-        catch { errText = await response.text(); }
-        appendMessage('Error: ' + errText, 'bot');
-        statusEl.textContent = 'Error';
-        return;
-      }
-
       const data = await response.json();
 
-      // --- CLEAN AND EXTRACT THE MAIN BOT TEXT ---
-      let botText = data.candidates?.[0]?.content?.parts?.[0]?.text || data.output_text || '';
-      botText = botText.replace(/^response\s*\(raw JSON\)\s*/i, '');
-      botText = botText.replace(/\*/g, '');
-      botText = botText.trim();
+      let botText = extractBotText(data) || '';
+      botText = botText.replace(/^response\s*\(raw JSON\)\s*/i, '').replace(/\*/g, '').trim();
 
-      if(!botText) botText = 'No reply from Bright AI.';
+      if(!botText) botText = 'Bright AI could not generate a response.';
 
-      // --- APPEND SPLIT MESSAGES ---
-      appendSplitMessage(botText, 'bot');
-
+      appendMessage(botText, 'bot');
       statusEl.textContent = 'Done ✅';
 
     } catch(err){
@@ -243,7 +229,7 @@
 
   sendBtn.addEventListener('click', sendMessage);
   userInput.addEventListener('keydown', (e) => {
-    if(e.key === 'Enter' && !e.shiftKey) {
+    if(e.key === 'Enter' && !e.shiftKey){
       e.preventDefault();
       sendMessage();
     }
@@ -255,7 +241,7 @@
     userInput.focus();
   });
 
-  // Initial welcome message
+  // Initial greeting
   appendMessage("Hello! I'm Bright AI (Bright GPT) — ask me anything. (Press Enter to send)", 'bot');
 
 </script>
